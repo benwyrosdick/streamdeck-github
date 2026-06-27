@@ -69,14 +69,16 @@ class PRCount(GitHubActionBase):
         settings = self._settings()
         name = settings["name"].strip()
         top = name[:12] if name else "PRs"
-        # Only the rate-limit state uses the bottom label; clear it otherwise.
-        self.safe_set_label("bottom", "", font_size=1)
+        # Icon stays centered; the count/status goes in the bottom label so it
+        # doesn't sit on top of the icon. Keep the center clear every tick.
+        self.set_icon("pr.png", size=0.45)
+        self.safe_set_label("top", top, font_size=12)
+        self.safe_set_label("center", "", font_size=1)
+
+        self.safe_set_background([0, 0, 0, 0])
 
         if not self._repo(settings):
-            self.set_icon("pr.png", size=0.45)
-            self.safe_set_background([0, 0, 0, 0])
-            self.safe_set_label("top", top, font_size=12)
-            self.safe_set_label("center", "—", font_size=20)
+            self.safe_set_label("bottom", "—", font_size=16)
             self.show_error(1)
             return
 
@@ -86,26 +88,21 @@ class PRCount(GitHubActionBase):
             self.render_rate_limited(until)
             return
 
-        if self.plugin_base.get_gh_available() is False:
-            self.set_icon("pr.png", size=0.45)
-            self.safe_set_background([0, 0, 0, 0])
-            self.safe_set_label("top", top, font_size=12)
-            self.safe_set_label("center", "auth", font_size=14)
-            self.show_error(1)
-            return
-
-        self.set_icon("pr.png", size=0.45)
-        self.safe_set_label("top", top, font_size=12)
-
         query = self._build_query(settings)
         count = self.plugin_base.get_count(query)
         if count is None:
-            # Either still loading or the last fetch failed.
-            self.safe_set_label("center", "…", font_size=20)
+            # No value to show yet. Distinguish "not authenticated" from a
+            # transient/loading state so a flaky auth check can't hide a count
+            # we've already fetched (that path keeps the last good value).
+            if self.plugin_base.get_gh_available() is False:
+                self.safe_set_label("bottom", "auth", font_size=14)
+            else:
+                self.safe_set_label("bottom", "...", font_size=16)
+            self.show_error(1)
             return
 
         self.hide_error()
-        self.safe_set_label("center", str(count), font_size=24)
+        self.safe_set_label("bottom", str(count), font_size=18)
         # Subtle nudge: highlight when there is something to look at.
         self.safe_set_background([40, 70, 120, 255] if count > 0 else [0, 0, 0, 0])
 

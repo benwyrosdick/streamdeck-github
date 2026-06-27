@@ -84,24 +84,18 @@ class CIStatus(GitHubActionBase):
             self.render_rate_limited(until)
             return
 
-        if self.plugin_base.get_gh_available() is False:
-            self.clear_icon()
-            self.safe_set_label("top", top, font_size=12)
-            self.safe_set_label("center", "auth", font_size=14)
-            self.show_error(1)
-            return
-
         branch = self._effective_branch(settings, repo)
-        if branch is None:
-            # Default branch not resolved yet; will arrive on a later tick.
-            self.set_icon("ci_queued.png", size=0.45)
-            self.safe_set_label("top", top, font_size=12)
-            return
-
-        run = self.plugin_base.get_run(repo, settings["workflow"], branch)
-        if run is None:
-            # Loading or last fetch failed.
-            self.set_icon("ci_queued.png", size=0.45)
+        run = (self.plugin_base.get_run(repo, settings["workflow"], branch)
+               if branch is not None else None)
+        if branch is None or run is None:
+            # No data yet (default branch unresolved or run still loading).
+            # Show the loading icon, unless gh isn't authenticated.
+            if self.plugin_base.get_gh_available() is False:
+                self.clear_icon()
+                self.safe_set_label("center", "auth", font_size=14)
+                self.show_error(1)
+            else:
+                self.set_icon("ci_queued.png", size=0.45)
             self.safe_set_label("top", top, font_size=12)
             return
 

@@ -112,7 +112,14 @@ class GitHubPlugin(PluginBase):
         except Exception:
             value = None
         with self._cache_lock:
-            self._cache[key] = {"value": value, "ts": time.monotonic()}
+            prev = self._cache.get(key)
+            if value is None and prev is not None and prev.get("value") is not None:
+                # Transient failure (timeout, flaky keyring/auth, etc.): keep the
+                # last good value on screen instead of blanking it. Reset the
+                # timestamp so we back off one max_age window before retrying.
+                self._cache[key] = {"value": prev["value"], "ts": time.monotonic()}
+            else:
+                self._cache[key] = {"value": value, "ts": time.monotonic()}
             self._inflight.discard(key)
 
     def invalidate(self, key: str):

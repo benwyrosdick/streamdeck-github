@@ -51,8 +51,10 @@ except Exception:  # pragma: no cover - loguru always present inside the app
     log = _LogShim()
 
 # Timeouts (seconds). Counts hit the network, so give them a generous budget;
-# auth checks are local and quick.
+# `gh run list`/`run view` (especially with a --workflow filter) can be slow,
+# so they get more headroom; auth checks are local and quick.
 COUNT_TIMEOUT = 8
+RUN_TIMEOUT = 15
 AUTH_TIMEOUT = 5
 
 
@@ -190,7 +192,7 @@ class GitHubBackend:
                 return None
 
     def latest_run(self, repo: str, workflow: str = "", branch: str = "",
-                   timeout: int = COUNT_TIMEOUT):
+                   timeout: int = RUN_TIMEOUT):
         """Most recent GitHub Actions run for a repo (optionally filtered).
 
         Returns the run dict (status/conclusion/workflowName/headBranch/url/
@@ -222,7 +224,7 @@ class GitHubBackend:
             return {}
         return data[0]
 
-    def run_step_progress(self, repo: str, run_id, timeout: int = COUNT_TIMEOUT):
+    def run_step_progress(self, repo: str, run_id, timeout: int = RUN_TIMEOUT):
         """(completed_steps, total_steps) for a run, aggregated across its jobs.
 
         Returns None on failure or when no steps are known yet. Counts every
