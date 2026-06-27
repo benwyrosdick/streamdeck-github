@@ -8,7 +8,7 @@ by the local [`gh`](https://cli.github.com) CLI.
 | Action | What it does |
 | --- | --- |
 | **PR Count** | Shows a live count of pull requests in a repo matching a filter (author, approval status, labels, state). Press the key to open the equivalent GitHub PR search in your browser. |
-| **CI Status** | Shows the status of the latest GitHub Actions run for a repo — green ✓ (success), red ✗ (failure), amber dots (running/queued), grey dash (no runs / cancelled). Press to open the run (or the repo's Actions page) in your browser. |
+| **CI Status** | Shows the status of the latest GitHub Actions run for a repo — green ✓ (success), red ✗ (failure), amber ↻ (in progress), grey dots (queued / waiting), grey dash (no runs / cancelled). Press to open the run (or the repo's Actions page) in your browser. |
 
 ### PR Count filters
 

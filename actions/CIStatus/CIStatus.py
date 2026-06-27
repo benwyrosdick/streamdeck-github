@@ -13,21 +13,24 @@ DEFAULTS = {
     "branch": "",
 }
 
-# Status -> (icon asset, short label) for the four states we collapse runs into.
+# Icon shown for each classified run state.
 ICONS = {
     "success": "ci_success.png",
     "failure": "ci_failure.png",
-    "running": "ci_running.png",
+    "running": "ci_running.png",   # amber circular arrow (actively in progress)
+    "queued": "ci_queued.png",     # grey dots (queued / waiting to start)
     "neutral": "ci_neutral.png",
 }
 
 
 def classify(run: dict) -> str:
-    """Collapse a run's status/conclusion into success/failure/running/neutral."""
+    """Collapse a run's status/conclusion into success/failure/running/queued/neutral."""
     status = run.get("status")
-    if status and status != "completed":
-        # queued / in_progress / pending / waiting / requested
+    if status == "in_progress":
         return "running"
+    if status and status != "completed":
+        # queued / waiting / requested / pending — not started running yet
+        return "queued"
     conclusion = run.get("conclusion")
     if conclusion == "success":
         return "success"
@@ -91,15 +94,15 @@ class CIStatus(GitHubActionBase):
         branch = self._effective_branch(settings, repo)
         if branch is None:
             # Default branch not resolved yet; will arrive on a later tick.
-            self.set_icon("ci_running.png", size=0.45)
-            self.safe_set_label("top", name[:12] if name else "CI", font_size=12)
+            self.set_icon("ci_queued.png", size=0.45)
+            self.safe_set_label("top", top, font_size=12)
             return
 
         run = self.plugin_base.get_run(repo, settings["workflow"], branch)
         if run is None:
             # Loading or last fetch failed.
-            self.set_icon("ci_running.png", size=0.45)
-            self.safe_set_label("top", name[:12] if name else "CI", font_size=12)
+            self.set_icon("ci_queued.png", size=0.45)
+            self.safe_set_label("top", top, font_size=12)
             return
 
         self.hide_error()
