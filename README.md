@@ -8,6 +8,7 @@ by the local [`gh`](https://cli.github.com) CLI.
 | Action | What it does |
 | --- | --- |
 | **PR Count** | Shows a live count of pull requests in a repo matching a filter (author, approval status, labels, state). Press the key to open the equivalent GitHub PR search in your browser. |
+| **Issue Count** | Shows a live count of issues in a repo matching a filter (author, assignee, labels, state). Press the key to open the equivalent GitHub issue search in your browser. |
 | **CI Status** | Shows the status of the latest GitHub Actions run for a repo — green ✓ (success), red ✗ (failure), amber ↻ (in progress), grey dots (queued / waiting), grey dash (no runs / cancelled). While a run is in progress it also shows live step progress (e.g. `4 / 9`) at the bottom. Press to open the run (or the repo's Actions page) in your browser. |
 
 ### PR Count filters
@@ -29,6 +30,19 @@ Configure each button in its settings:
 
 - **My Open** — Author: *Me*, Approval: *Pending review*, State: *Open*.
 - **For Review** — Author: *Not me*, Labels: `api`, Approval: *Pending review*, State: *Open*.
+
+### Issue Count filters
+
+| Setting | Notes |
+| --- | --- |
+| **Button label** | Short name shown on the key (e.g. "My Issues"). |
+| **Repository** | `owner/name`. |
+| **Author** | Anyone / Me / Not me / Specific user / Not a user. |
+| **User** | The username used when Author is *Specific user* or *Not a user*. |
+| **Assignee** | Anyone / Me / Not me / Unassigned. |
+| **Labels** | Comma-separated; all must be present (AND). |
+| **State** | Open (default) / Closed / All. |
+| **Advanced query** | Raw GitHub search qualifiers appended verbatim (e.g. `milestone:v2`). |
 
 ### CI Status filters
 

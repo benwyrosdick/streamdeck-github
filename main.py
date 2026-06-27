@@ -13,6 +13,7 @@ import threading
 from .backend.github_backend import GitHubBackend, RateLimitError
 
 from .actions.PRCount.PRCount import PRCount
+from .actions.IssueCount.IssueCount import IssueCount
 from .actions.CIStatus.CIStatus import CIStatus
 
 
@@ -52,6 +53,19 @@ class GitHubPlugin(PluginBase):
             },
         )
         self.add_action_holder(self.pr_count_holder)
+
+        self.issue_count_holder = ActionHolder(
+            plugin_base=self,
+            action_base=IssueCount,
+            action_id_suffix="IssueCount",
+            action_name=self.lm.get("actions.issue-count.name"),
+            action_support={
+                Input.Key: ActionInputSupport.SUPPORTED,
+                Input.Dial: ActionInputSupport.UNTESTED,
+                Input.Touchscreen: ActionInputSupport.UNTESTED,
+            },
+        )
+        self.add_action_holder(self.issue_count_holder)
 
         self.ci_status_holder = ActionHolder(
             plugin_base=self,

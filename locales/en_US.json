@@ -31,6 +31,34 @@
 
     "actions.pr-count.extra.label": "Advanced query (raw qualifiers)",
 
+    "actions.issue-count.name": "Issue Count",
+
+    "actions.issue-count.name-row.label": "Button label",
+    "actions.issue-count.repo.label": "Repository (owner/name)",
+
+    "actions.issue-count.author.label": "Author",
+    "actions.issue-count.author.any": "Anyone",
+    "actions.issue-count.author.me": "Me",
+    "actions.issue-count.author.not-me": "Not me",
+    "actions.issue-count.author.user": "Specific user",
+    "actions.issue-count.author.not-user": "Not a user",
+    "actions.issue-count.user.label": "User (for Specific / Not a user)",
+
+    "actions.issue-count.assignee.label": "Assignee",
+    "actions.issue-count.assignee.any": "Anyone",
+    "actions.issue-count.assignee.me": "Me",
+    "actions.issue-count.assignee.not-me": "Not me",
+    "actions.issue-count.assignee.none": "Unassigned",
+
+    "actions.issue-count.labels.label": "Labels (comma-separated)",
+
+    "actions.issue-count.state.label": "State",
+    "actions.issue-count.state.open": "Open",
+    "actions.issue-count.state.closed": "Closed",
+    "actions.issue-count.state.all": "All",
+
+    "actions.issue-count.extra.label": "Advanced query (raw qualifiers)",
+
     "actions.ci-status.name": "CI Status",
     "actions.ci-status.name-row.label": "Button label",
     "actions.ci-status.repo.label": "Repository (owner/name)",
