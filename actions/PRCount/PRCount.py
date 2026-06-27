@@ -1,0 +1,254 @@
+import urllib.parse
+
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Gtk, Adw
+
+from ..base.GitHubActionBase import GitHubActionBase
+
+
+# Each combo's options as (settings_value, locale_key). The settings value is a
+# stable key stored in the button settings; the locale key resolves to the
+# human label shown in the dropdown.
+AUTHOR_OPTIONS = [
+    ("any", "actions.pr-count.author.any"),
+    ("me", "actions.pr-count.author.me"),
+    ("not_me", "actions.pr-count.author.not-me"),
+    ("user", "actions.pr-count.author.user"),
+    ("not_user", "actions.pr-count.author.not-user"),
+]
+APPROVAL_OPTIONS = [
+    ("any", "actions.pr-count.approval.any"),
+    ("none", "actions.pr-count.approval.none"),
+    ("approved", "actions.pr-count.approval.approved"),
+    ("changes_requested", "actions.pr-count.approval.changes"),
+    ("required", "actions.pr-count.approval.required"),
+]
+STATE_OPTIONS = [
+    ("open", "actions.pr-count.state.open"),
+    ("closed", "actions.pr-count.state.closed"),
+    ("merged", "actions.pr-count.state.merged"),
+    ("all", "actions.pr-count.state.all"),
+]
+
+DEFAULTS = {
+    "name": "",
+    "repo": "",
+    "author": "any",
+    "user": "",
+    "approval": "any",
+    "labels": "",
+    "state": "open",
+    "extra": "",
+}
+
+
+class PRCount(GitHubActionBase):
+    """Shows a live count of pull requests matching a configurable filter.
+
+    Pressing the key opens the equivalent GitHub PR search in the browser.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.has_configuration = True
+
+    # ------------------------------------------------------------------ #
+    # Lifecycle
+    # ------------------------------------------------------------------ #
+    def on_ready(self):
+        self.render()
+
+    def on_tick(self):
+        # The count refreshes asynchronously in the plugin; polling here picks
+        # up the new value within ~1s of the background fetch completing.
+        self.render()
+
+    def render(self):
+        self.set_icon("pr.png", size=0.45)
+        settings = self._settings()
+
+        name = settings["name"].strip()
+        self.safe_set_label("top", name[:12] if name else "PRs", font_size=12)
+
+        if not self._repo(settings):
+            self.safe_set_label("center", "—", font_size=20)
+            self.show_error(1)
+            return
+        if not self.plugin_base.backend.gh_available():
+            self.safe_set_label("center", "auth", font_size=14)
+            self.show_error(1)
+            return
+
+        query = self._build_query(settings)
+        count = self.plugin_base.get_count(query)
+        if count is None:
+            # Either still loading or the last fetch failed.
+            self.safe_set_label("center", "…", font_size=20)
+            return
+
+        self.hide_error()
+        self.safe_set_label("center", str(count), font_size=24)
+        # Subtle nudge: highlight when there is something to look at.
+        if count > 0:
+            self.safe_set_background([40, 70, 120, 255])
+        else:
+            self.safe_set_background([0, 0, 0, 0])
+
+    def on_key_down(self):
+        settings = self._settings()
+        if not self._repo(settings):
+            self.show_error(2)
+            return
+        query = self._build_query(settings)
+        self.plugin_base.invalidate(query)
+        self.plugin_base.backend.open_in_browser(self._build_url(query))
+
+    # ------------------------------------------------------------------ #
+    # Settings / query building
+    # ------------------------------------------------------------------ #
+    def _settings(self) -> dict:
+        merged = dict(DEFAULTS)
+        merged.update(self.get_settings() or {})
+        return merged
+
+    def _repo(self, settings: dict) -> str:
+        """A cleaned owner/name, or "" if not a plausible repo."""
+        repo = (settings.get("repo") or "").strip().strip("/")
+        return repo if repo.count("/") == 1 and all(repo.split("/")) else ""
+
+    def _build_query(self, settings: dict) -> str:
+        terms = [f"repo:{self._repo(settings)}", "type:pr"]
+
+        state = settings.get("state", "open")
+        if state == "open":
+            terms.append("state:open")
+        elif state == "closed":
+            terms.append("state:closed")
+        elif state == "merged":
+            terms.append("is:merged")
+        # "all" -> no state qualifier
+
+        author = settings.get("author", "any")
+        user = (settings.get("user") or "").strip().lstrip("@")
+        if author == "me":
+            terms.append("author:@me")
+        elif author == "not_me":
+            terms.append("-author:@me")
+        elif author == "user" and user:
+            terms.append(f"author:{user}")
+        elif author == "not_user" and user:
+            terms.append(f"-author:{user}")
+
+        approval = settings.get("approval", "any")
+        if approval in ("none", "approved", "changes_requested", "required"):
+            terms.append(f"review:{approval}")
+
+        for raw in (settings.get("labels") or "").split(","):
+            label = raw.strip()
+            if label:
+                terms.append(f'label:"{label}"')
+
+        extra = (settings.get("extra") or "").strip()
+        if extra:
+            terms.append(extra)
+
+        return " ".join(terms)
+
+    def _build_url(self, query: str) -> str:
+        return (
+            "https://github.com/search?q="
+            + urllib.parse.quote(query)
+            + "&type=pullrequests"
+        )
+
+    # ------------------------------------------------------------------ #
+    # Configuration UI
+    # ------------------------------------------------------------------ #
+    def get_config_rows(self) -> list:
+        lm = self.plugin_base.lm
+
+        self.name_row = Adw.EntryRow(title=lm.get("actions.pr-count.name-row.label"))
+        self.repo_row = Adw.EntryRow(title=lm.get("actions.pr-count.repo.label"))
+        self.author_row = self._combo("actions.pr-count.author.label", AUTHOR_OPTIONS)
+        self.user_row = Adw.EntryRow(title=lm.get("actions.pr-count.user.label"))
+        self.approval_row = self._combo("actions.pr-count.approval.label", APPROVAL_OPTIONS)
+        self.labels_row = Adw.EntryRow(title=lm.get("actions.pr-count.labels.label"))
+        self.state_row = self._combo("actions.pr-count.state.label", STATE_OPTIONS)
+        self.extra_row = Adw.EntryRow(title=lm.get("actions.pr-count.extra.label"))
+
+        self._rows = [
+            self.name_row, self.repo_row, self.author_row, self.user_row,
+            self.approval_row, self.labels_row, self.state_row, self.extra_row,
+        ]
+
+        self.load_configs()
+        self.connect_signals()
+        return self._rows
+
+    def _combo(self, title_key, options):
+        model = Gtk.StringList()
+        for _value, label_key in options:
+            model.append(self.plugin_base.lm.get(label_key))
+        return Adw.ComboRow(model=model, title=self.plugin_base.lm.get(title_key))
+
+    # --- signal wiring ------------------------------------------------- #
+    def connect_signals(self):
+        self.name_row.connect("changed", self._on_entry_change)
+        self.repo_row.connect("changed", self._on_entry_change)
+        self.user_row.connect("changed", self._on_entry_change)
+        self.labels_row.connect("changed", self._on_entry_change)
+        self.extra_row.connect("changed", self._on_entry_change)
+        self.author_row.connect("notify::selected", self._on_combo_change)
+        self.approval_row.connect("notify::selected", self._on_combo_change)
+        self.state_row.connect("notify::selected", self._on_combo_change)
+
+    def disconnect_signals(self):
+        for row, fn in (
+            (self.name_row, self._on_entry_change),
+            (self.repo_row, self._on_entry_change),
+            (self.user_row, self._on_entry_change),
+            (self.labels_row, self._on_entry_change),
+            (self.extra_row, self._on_entry_change),
+            (self.author_row, self._on_combo_change),
+            (self.approval_row, self._on_combo_change),
+            (self.state_row, self._on_combo_change),
+        ):
+            try:
+                row.disconnect_by_func(fn)
+            except TypeError:
+                pass
+
+    # --- load / save --------------------------------------------------- #
+    def load_configs(self):
+        self.disconnect_signals()
+        settings = self._settings()
+        self.name_row.set_text(settings["name"])
+        self.repo_row.set_text(settings["repo"])
+        self.user_row.set_text(settings["user"])
+        self.labels_row.set_text(settings["labels"])
+        self.extra_row.set_text(settings["extra"])
+        self._select(self.author_row, AUTHOR_OPTIONS, settings["author"])
+        self._select(self.approval_row, APPROVAL_OPTIONS, settings["approval"])
+        self._select(self.state_row, STATE_OPTIONS, settings["state"])
+
+    def _select(self, row, options, value):
+        keys = [v for v, _ in options]
+        row.set_selected(keys.index(value) if value in keys else 0)
+
+    def _on_entry_change(self, *args):
+        settings = self.get_settings() or {}
+        settings["name"] = self.name_row.get_text()
+        settings["repo"] = self.repo_row.get_text()
+        settings["user"] = self.user_row.get_text()
+        settings["labels"] = self.labels_row.get_text()
+        settings["extra"] = self.extra_row.get_text()
+        self.set_settings(settings)
+
+    def _on_combo_change(self, *args):
+        settings = self.get_settings() or {}
+        settings["author"] = AUTHOR_OPTIONS[self.author_row.get_selected()][0]
+        settings["approval"] = APPROVAL_OPTIONS[self.approval_row.get_selected()][0]
+        settings["state"] = STATE_OPTIONS[self.state_row.get_selected()][0]
+        self.set_settings(settings)
