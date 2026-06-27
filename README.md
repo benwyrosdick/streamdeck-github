@@ -8,6 +8,7 @@ by the local [`gh`](https://cli.github.com) CLI.
 | Action | What it does |
 | --- | --- |
 | **PR Count** | Shows a live count of pull requests in a repo matching a filter (author, approval status, labels, state). Press the key to open the equivalent GitHub PR search in your browser. |
+| **CI Status** | Shows the status of the latest GitHub Actions run for a repo — green ✓ (success), red ✗ (failure), amber dots (running/queued), grey dash (no runs / cancelled). Press to open the run (or the repo's Actions page) in your browser. |
 
 ### PR Count filters
 
@@ -28,6 +29,15 @@ Configure each button in its settings:
 
 - **My Open** — Author: *Me*, Approval: *Pending review*, State: *Open*.
 - **For Review** — Author: *Not me*, Labels: `api`, Approval: *Pending review*, State: *Open*.
+
+### CI Status filters
+
+| Setting | Notes |
+| --- | --- |
+| **Button label** | Short name shown on the key; defaults to the workflow name. |
+| **Repository** | `owner/name`. |
+| **Workflow** | Optional — a workflow name (`CI`) or file (`ci.yml`). Blank = any workflow. |
+| **Branch** | Optional — blank follows the repo's default branch. |
 
 ## Requirements
 

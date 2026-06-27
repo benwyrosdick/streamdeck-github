@@ -18,18 +18,53 @@ import os
 import shutil
 import subprocess
 import threading
+import time
 from typing import Optional
 
 try:
     from loguru import logger as log
 except Exception:  # pragma: no cover - loguru always present inside the app
     import logging
-    log = logging.getLogger("github")
+
+    class _LogShim:
+        """Adapt loguru-style "{}" calls to stdlib logging (used only when
+        loguru is missing, e.g. standalone tests)."""
+        def __init__(self):
+            self._log = logging.getLogger("github")
+
+        @staticmethod
+        def _fmt(msg, args):
+            try:
+                return msg.format(*args)
+            except Exception:
+                return msg
+
+        def warning(self, msg, *a):
+            self._log.warning(self._fmt(msg, a))
+
+        def error(self, msg, *a):
+            self._log.error(self._fmt(msg, a))
+
+        def exception(self, msg, *a):
+            self._log.error(self._fmt(msg, a))
+
+    log = _LogShim()
 
 # Timeouts (seconds). Counts hit the network, so give them a generous budget;
 # auth checks are local and quick.
 COUNT_TIMEOUT = 8
 AUTH_TIMEOUT = 5
+
+
+class RateLimitError(Exception):
+    """Raised when a gh call fails because the GitHub API rate limit is hit.
+
+    Carries the epoch (seconds) when the limit is expected to reset, so the UI
+    can show a countdown and callers can stop polling until then.
+    """
+    def __init__(self, reset_epoch: float):
+        super().__init__("github api rate limited")
+        self.reset_epoch = reset_epoch
 
 
 class GitHubBackend:
@@ -71,11 +106,53 @@ class GitHubBackend:
             return False, "", str(e)
 
     # ------------------------------------------------------------------ #
+    # Rate-limit detection
+    # ------------------------------------------------------------------ #
+    def _check_rate_limit(self, stderr: str) -> None:
+        """Raise RateLimitError if `stderr` indicates GitHub rate limiting."""
+        if "rate limit" not in (stderr or "").lower():
+            return
+        reset = self._rate_limit_reset()
+        if reset is None:
+            # Secondary/abuse limits aren't reflected in /rate_limit; back off
+            # a minute and try again.
+            reset = time.time() + 60
+        raise RateLimitError(reset)
+
+    def _rate_limit_reset(self) -> Optional[float]:
+        """Soonest reset epoch among currently-exhausted resources, or None.
+
+        The /rate_limit endpoint does NOT count against the rate limit, so it
+        is always safe to call — even while rate limited.
+        """
+        ok, out, _ = self._run(
+            ["api", "rate_limit", "--jq",
+             "[.resources | to_entries[] | select(.value.remaining == 0) "
+             "| .value.reset] | min"],
+            timeout=AUTH_TIMEOUT,
+        )
+        if not ok:
+            return None
+        val = out.strip()
+        if not val or val == "null":
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
+
+    # ------------------------------------------------------------------ #
     # Read operations
     # ------------------------------------------------------------------ #
     def gh_available(self) -> bool:
-        """True if `gh` is installed and authenticated."""
-        ok, _, _ = self._run(["auth", "status"], timeout=AUTH_TIMEOUT)
+        """True if `gh` is installed and authenticated.
+
+        Raises RateLimitError if the check fails due to rate limiting (the
+        token-validation request can itself be throttled).
+        """
+        ok, _, err = self._run(["auth", "status"], timeout=AUTH_TIMEOUT)
+        if not ok:
+            self._check_rate_limit(err)
         return ok
 
     def count(self, query: str, timeout: int = COUNT_TIMEOUT) -> Optional[int]:
@@ -92,12 +169,15 @@ class GitHubBackend:
         )
         # Both -f flags force string typing; the GraphQL variable is String!.
         # -f (vs -F) also avoids gh interpreting a leading '@' as a file path.
-        ok, out, _ = self._run(
+        ok, out, err = self._run(
             ["api", "graphql", "-f", f"query={gql}", "-f", f"q={query}",
              "--jq", ".data.search.issueCount"],
             timeout=timeout,
         )
-        if not ok or not out.strip():
+        if not ok:
+            self._check_rate_limit(err)
+            return None
+        if not out.strip():
             return None
         try:
             return int(out.strip())
@@ -128,8 +208,11 @@ class GitHubBackend:
             args += ["--workflow", workflow]
         if branch:
             args += ["--branch", branch]
-        ok, out, _ = self._run(args, timeout=timeout)
-        if not ok or not out.strip():
+        ok, out, err = self._run(args, timeout=timeout)
+        if not ok:
+            self._check_rate_limit(err)
+            return None
+        if not out.strip():
             return None
         try:
             data = json.loads(out)
@@ -138,6 +221,19 @@ class GitHubBackend:
         if not data:
             return {}
         return data[0]
+
+    def default_branch(self, repo: str, timeout: int = AUTH_TIMEOUT):
+        """The repo's default branch name (e.g. "main"), or None on failure."""
+        if not repo:
+            return None
+        ok, out, err = self._run(
+            ["api", f"repos/{repo}", "--jq", ".default_branch"], timeout=timeout
+        )
+        if not ok:
+            self._check_rate_limit(err)
+            return None
+        branch = out.strip()
+        return branch or None
 
     # ------------------------------------------------------------------ #
     # Side effects

@@ -66,20 +66,36 @@ class PRCount(GitHubActionBase):
         self.render()
 
     def render(self):
-        self.set_icon("pr.png", size=0.45)
         settings = self._settings()
-
         name = settings["name"].strip()
-        self.safe_set_label("top", name[:12] if name else "PRs", font_size=12)
+        top = name[:12] if name else "PRs"
+        # Only the rate-limit state uses the bottom label; clear it otherwise.
+        self.safe_set_label("bottom", "", font_size=1)
 
         if not self._repo(settings):
+            self.set_icon("pr.png", size=0.45)
+            self.safe_set_background([0, 0, 0, 0])
+            self.safe_set_label("top", top, font_size=12)
             self.safe_set_label("center", "—", font_size=20)
             self.show_error(1)
             return
-        if not self.plugin_base.backend.gh_available():
+
+        # When rate limited, stop polling and show a countdown to the reset.
+        until = self.plugin_base.rate_limited_until()
+        if until is not None:
+            self.render_rate_limited(until)
+            return
+
+        if self.plugin_base.get_gh_available() is False:
+            self.set_icon("pr.png", size=0.45)
+            self.safe_set_background([0, 0, 0, 0])
+            self.safe_set_label("top", top, font_size=12)
             self.safe_set_label("center", "auth", font_size=14)
             self.show_error(1)
             return
+
+        self.set_icon("pr.png", size=0.45)
+        self.safe_set_label("top", top, font_size=12)
 
         query = self._build_query(settings)
         count = self.plugin_base.get_count(query)
@@ -91,10 +107,7 @@ class PRCount(GitHubActionBase):
         self.hide_error()
         self.safe_set_label("center", str(count), font_size=24)
         # Subtle nudge: highlight when there is something to look at.
-        if count > 0:
-            self.safe_set_background([40, 70, 120, 255])
-        else:
-            self.safe_set_background([0, 0, 0, 0])
+        self.safe_set_background([40, 70, 120, 255] if count > 0 else [0, 0, 0, 0])
 
     def on_key_down(self):
         settings = self._settings()

@@ -1,6 +1,16 @@
 import os
+import time
 
 from src.backend.PluginManager.ActionBase import ActionBase
+
+
+def format_countdown(seconds: float) -> str:
+    """Compact mm/ss countdown, e.g. 205s -> "3m25s", 9s -> "9s"."""
+    secs = max(0, int(seconds))
+    minutes, secs = divmod(secs, 60)
+    if minutes:
+        return f"{minutes}m{secs:02d}s"
+    return f"{secs}s"
 
 
 class GitHubActionBase(ActionBase):
@@ -47,6 +57,15 @@ class GitHubActionBase(ActionBase):
                 setter(text)
             except Exception:
                 pass
+
+    def render_rate_limited(self, until: float):
+        """Shared "rate limit" key state: red background, no icon, and a
+        countdown (bottom) to when polling will resume."""
+        self.clear_icon()
+        self.safe_set_background([180, 30, 30, 255])
+        self.safe_set_label("top", "rate limit", font_size=12)
+        self.safe_set_label("center", "", font_size=1)
+        self.safe_set_label("bottom", format_countdown(until - time.time()), font_size=14)
 
     def render(self):
         """Update the button from current state. Overridden per action."""

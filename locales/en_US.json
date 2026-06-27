@@ -29,5 +29,11 @@
     "actions.pr-count.state.merged": "Merged",
     "actions.pr-count.state.all": "All",
 
-    "actions.pr-count.extra.label": "Advanced query (raw qualifiers)"
+    "actions.pr-count.extra.label": "Advanced query (raw qualifiers)",
+
+    "actions.ci-status.name": "CI Status",
+    "actions.ci-status.name-row.label": "Button label",
+    "actions.ci-status.repo.label": "Repository (owner/name)",
+    "actions.ci-status.workflow.label": "Workflow (name or file, optional)",
+    "actions.ci-status.branch.label": "Branch (optional, defaults to default branch)"
 }
