@@ -171,3 +171,13 @@ class GitHubPlugin(PluginBase):
 
     def invalidate_run(self, repo: str, workflow: str = "", branch: str = ""):
         self.invalidate(self._run_key(repo, workflow, branch))
+
+    def get_run_progress(self, repo: str, run_id, max_age: float = 15.0):
+        """(completed, total) steps for a run, or None. Cached briefly (shorter
+        than the run cache) so the live counter advances while a run is going."""
+        if not repo or not run_id:
+            return None
+        key = f"prog\x00{repo}\x00{run_id}"
+        return self._get_async(
+            key, lambda: self.backend.run_step_progress(repo, run_id), max_age
+        )

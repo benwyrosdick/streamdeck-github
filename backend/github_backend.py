@@ -202,7 +202,7 @@ class GitHubBackend:
             return None
         args = [
             "run", "list", "-R", repo, "--limit", "1",
-            "--json", "status,conclusion,workflowName,headBranch,displayTitle,url",
+            "--json", "status,conclusion,workflowName,headBranch,displayTitle,url,databaseId",
         ]
         if workflow:
             args += ["--workflow", workflow]
@@ -221,6 +221,40 @@ class GitHubBackend:
         if not data:
             return {}
         return data[0]
+
+    def run_step_progress(self, repo: str, run_id, timeout: int = COUNT_TIMEOUT):
+        """(completed_steps, total_steps) for a run, aggregated across its jobs.
+
+        Returns None on failure or when no steps are known yet. Counts every
+        step GitHub reports (including the implicit set-up/complete steps), so
+        it matches what the Actions UI shows per job. While a run is still
+        going, the total grows as not-yet-started jobs register their steps.
+        """
+        if not repo or not run_id:
+            return None
+        ok, out, err = self._run(
+            ["run", "view", str(run_id), "-R", repo, "--json", "jobs"],
+            timeout=timeout,
+        )
+        if not ok:
+            self._check_rate_limit(err)
+            return None
+        if not out.strip():
+            return None
+        try:
+            data = json.loads(out)
+        except (ValueError, TypeError):
+            return None
+        steps = [
+            step
+            for job in (data.get("jobs") or [])
+            for step in (job.get("steps") or [])
+        ]
+        if not steps:
+            return None
+        total = len(steps)
+        completed = sum(1 for s in steps if s.get("status") == "completed")
+        return completed, total
 
     def default_branch(self, repo: str, timeout: int = AUTH_TIMEOUT):
         """The repo's default branch name (e.g. "main"), or None on failure."""

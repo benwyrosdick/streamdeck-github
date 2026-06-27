@@ -117,6 +117,14 @@ class CIStatus(GitHubActionBase):
         top = name or run.get("workflowName") or branch
         self.safe_set_label("top", (top or "CI")[:12], font_size=12)
 
+        # While actively running, show live step progress, e.g. "4 / 9".
+        if state == "running":
+            run_id = run.get("databaseId")
+            progress = self.plugin_base.get_run_progress(repo, run_id) if run_id else None
+            if progress:
+                done, total = progress
+                self.safe_set_label("bottom", f"{done} / {total}", font_size=14)
+
     def on_key_down(self):
         settings = self._settings()
         repo = self._repo(settings)
