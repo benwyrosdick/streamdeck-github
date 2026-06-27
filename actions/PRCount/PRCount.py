@@ -58,12 +58,15 @@ class PRCount(GitHubActionBase):
     # Lifecycle
     # ------------------------------------------------------------------ #
     def on_ready(self):
+        self.reset_render_state()
         self.render()
+        self.commit_render()
 
     def on_tick(self):
         # The count refreshes asynchronously in the plugin; polling here picks
         # up the new value within ~1s of the background fetch completing.
         self.render()
+        self.commit_render()
 
     def render(self):
         settings = self._settings()
@@ -74,10 +77,11 @@ class PRCount(GitHubActionBase):
         self.set_icon("pr.png", size=0.45)
         self.safe_set_label("top", top, font_size=12)
         self.safe_set_label("center", "", font_size=1)
-
-        self.safe_set_background([0, 0, 0, 0])
+        # Set the background exactly once per path: setting it twice (a reset
+        # here plus a value below) makes it oscillate every tick and flicker.
 
         if not self._repo(settings):
+            self.safe_set_background([0, 0, 0, 0])
             self.safe_set_label("bottom", "—", font_size=16)
             self.show_error(1)
             return
@@ -94,6 +98,7 @@ class PRCount(GitHubActionBase):
             # No value to show yet. Distinguish "not authenticated" from a
             # transient/loading state so a flaky auth check can't hide a count
             # we've already fetched (that path keeps the last good value).
+            self.safe_set_background([0, 0, 0, 0])
             if self.plugin_base.get_gh_available() is False:
                 self.safe_set_label("bottom", "auth", font_size=14)
             else:

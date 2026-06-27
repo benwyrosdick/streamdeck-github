@@ -56,23 +56,27 @@ class CIStatus(GitHubActionBase):
     # Lifecycle
     # ------------------------------------------------------------------ #
     def on_ready(self):
+        self.reset_render_state()
         self.render()
+        self.commit_render()
 
     def on_tick(self):
         self.render()
+        self.commit_render()
 
     def render(self):
         settings = self._settings()
-        self.safe_set_background([0, 0, 0, 0])
-
         name = settings["name"].strip()
         top = name[:12] if name else "CI"
         repo = self._repo(settings)
         # center/bottom labels are only used by the auth / rate-limit states.
         self.safe_set_label("center", "", font_size=1)
         self.safe_set_label("bottom", "", font_size=1)
+        # Set the background exactly once per path (setting it twice makes it
+        # oscillate every tick and flicker).
 
         if not repo:
+            self.safe_set_background([0, 0, 0, 0])
             self.set_icon("ci_neutral.png", size=0.45)
             self.safe_set_label("top", top, font_size=12)
             self.show_error(1)
@@ -84,6 +88,8 @@ class CIStatus(GitHubActionBase):
             self.render_rate_limited(until)
             return
 
+        # Every remaining (non-rate-limited) state uses a transparent background.
+        self.safe_set_background([0, 0, 0, 0])
         branch = self._effective_branch(settings, repo)
         run = (self.plugin_base.get_run(repo, settings["workflow"], branch)
                if branch is not None else None)
