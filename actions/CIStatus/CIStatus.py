@@ -90,11 +90,10 @@ class CIStatus(GitHubActionBase):
 
         # Every remaining (non-rate-limited) state uses a transparent background.
         self.safe_set_background([0, 0, 0, 0])
-        branch = self._effective_branch(settings, repo)
-        run = (self.plugin_base.get_run(repo, settings["workflow"], branch)
-               if branch is not None else None)
-        if branch is None or run is None:
-            # No data yet (default branch unresolved or run still loading).
+        branch = self._effective_branch(settings)
+        run = self.plugin_base.get_run(repo, settings["workflow"], branch)
+        if run is None:
+            # No data yet (run still loading).
             # Show the loading icon, unless gh isn't authenticated.
             if self.plugin_base.get_gh_available() is False:
                 self.clear_icon()
@@ -131,13 +130,12 @@ class CIStatus(GitHubActionBase):
         if not repo:
             self.show_error(2)
             return
-        branch = self._effective_branch(settings, repo)
+        branch = self._effective_branch(settings)
         url = f"https://github.com/{repo}/actions"
-        if branch is not None:
-            run = self.plugin_base.get_run(repo, settings["workflow"], branch)
-            if run:
-                url = run.get("url") or url
-            self.plugin_base.invalidate_run(repo, settings["workflow"], branch)
+        run = self.plugin_base.get_run(repo, settings["workflow"], branch)
+        if run:
+            url = run.get("url") or url
+        self.plugin_base.invalidate_run(repo, settings["workflow"], branch)
         self.plugin_base.backend.open_in_browser(url)
 
     # ------------------------------------------------------------------ #
@@ -152,13 +150,11 @@ class CIStatus(GitHubActionBase):
         repo = (settings.get("repo") or "").strip().strip("/")
         return repo if repo.count("/") == 1 and all(repo.split("/")) else ""
 
-    def _effective_branch(self, settings: dict, repo: str):
-        """The branch to query: the explicit setting, else the repo's default
-        branch. Returns None while the default branch is still being resolved."""
-        branch = (settings.get("branch") or "").strip()
-        if branch:
-            return branch
-        return self.plugin_base.get_default_branch(repo)
+    def _effective_branch(self, settings: dict) -> str:
+        """The branch to filter runs on. A blank Branch field means "any
+        branch" (returned as ""), so a run on a feature branch is still
+        surfaced rather than only runs on the repo's default branch."""
+        return (settings.get("branch") or "").strip()
 
     # ------------------------------------------------------------------ #
     # Configuration UI

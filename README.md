@@ -51,7 +51,7 @@ Configure each button in its settings:
 | **Button label** | Short name shown on the key; defaults to the workflow name. |
 | **Repository** | `owner/name`. |
 | **Workflow** | Optional — a workflow name (`CI`) or file (`ci.yml`). Blank = any workflow. |
-| **Branch** | Optional — blank follows the repo's default branch. |
+| **Branch** | Optional — blank = any branch. |
 
 ## Requirements
 

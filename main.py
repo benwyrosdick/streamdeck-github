@@ -171,12 +171,6 @@ class GitHubPlugin(PluginBase):
             return None
         return self._get_async(query, lambda: self.backend.count(query), max_age)
 
-    def get_default_branch(self, repo: str, max_age: float = 3600.0):
-        if not repo:
-            return None
-        key = f"defbranch\x00{repo}"
-        return self._get_async(key, lambda: self.backend.default_branch(repo), max_age)
-
     @staticmethod
     def _run_key(repo: str, workflow: str, branch: str) -> str:
         return f"run\x00{repo}\x00{workflow}\x00{branch}"

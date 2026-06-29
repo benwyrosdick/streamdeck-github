@@ -258,19 +258,6 @@ class GitHubBackend:
         completed = sum(1 for s in steps if s.get("status") == "completed")
         return completed, total
 
-    def default_branch(self, repo: str, timeout: int = AUTH_TIMEOUT):
-        """The repo's default branch name (e.g. "main"), or None on failure."""
-        if not repo:
-            return None
-        ok, out, err = self._run(
-            ["api", f"repos/{repo}", "--jq", ".default_branch"], timeout=timeout
-        )
-        if not ok:
-            self._check_rate_limit(err)
-            return None
-        branch = out.strip()
-        return branch or None
-
     # ------------------------------------------------------------------ #
     # Side effects
     # ------------------------------------------------------------------ #

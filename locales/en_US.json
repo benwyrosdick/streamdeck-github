@@ -63,5 +63,5 @@
     "actions.ci-status.name-row.label": "Button label",
     "actions.ci-status.repo.label": "Repository (owner/name)",
     "actions.ci-status.workflow.label": "Workflow (name or file, optional)",
-    "actions.ci-status.branch.label": "Branch (optional, defaults to default branch)"
+    "actions.ci-status.branch.label": "Branch (optional, any branch if blank)"
 }
