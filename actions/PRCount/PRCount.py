@@ -160,10 +160,12 @@ class PRCount(GitHubActionBase):
         if approval in ("none", "approved", "changes_requested", "required"):
             terms.append(f"review:{approval}")
 
-        for raw in (settings.get("labels") or "").split(","):
-            label = raw.strip()
-            if label:
-                terms.append(f'label:"{label}"')
+        # Comma-separated labels are OR'd via a single qualifier with quoted
+        # values (`label:"a","b"`). Separate `label:` qualifiers would AND them.
+        labels = [raw.strip() for raw in (settings.get("labels") or "").split(",")]
+        labels = [label for label in labels if label]
+        if labels:
+            terms.append("label:" + ",".join(f'"{label}"' for label in labels))
 
         extra = (settings.get("extra") or "").strip()
         if extra:
