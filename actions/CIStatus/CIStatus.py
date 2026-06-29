@@ -17,7 +17,7 @@ DEFAULTS = {
 ICONS = {
     "success": "ci_success.png",
     "failure": "ci_failure.png",
-    "running": "ci_running.png",   # amber circular arrow (actively in progress)
+    "running": "ci_running.gif",   # spinning amber arrow (actively in progress)
     "queued": "ci_queued.png",     # grey dots (queued / waiting to start)
     "neutral": "ci_neutral.png",
 }
