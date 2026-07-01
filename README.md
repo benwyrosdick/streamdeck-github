@@ -62,6 +62,15 @@ Configure each button in its settings:
 | **Repository** | Optional — `owner/name` to count only that repo's notifications; blank counts across all repos. |
 | **Filter** | All unread (default) / Assigned / Participating / Mentioned / Team mentioned / Review requested — mirrors the inbox's Filters. |
 
+## Installation
+
+- **From the StreamController store** (recommended): open the plugin store in
+  StreamController and install **GitHub Insights**. It's an unofficial,
+  community plugin.
+- **Manually**: clone this repo into your StreamController plugins directory
+  (typically `~/.var/app/com.core447.StreamController/data/plugins/` for the
+  flatpak) and restart StreamController.
+
 ## Requirements
 
 - StreamController **1.5.0-beta.14** or newer.
@@ -70,7 +79,7 @@ Configure each button in its settings:
   uses your existing `gh` login — **no API key or extra setup required**.
 
 If `gh` isn't authenticated, run `gh auth login` once on the host. Until then,
-PR Count keys show an `auth` hint instead of a number.
+keys show an `auth` hint instead of a number.
 
 ## How it works
 
@@ -85,5 +94,5 @@ GitHub isn't polled more than necessary no matter how many buttons you have.
 - "Not me" / negated-author filters are always scoped to the configured repo,
   so they stay fast and accurate (an unscoped negation would span all of
   GitHub).
-- The `pr.png` icon and `store/Thumbnail.png` are simple placeholders — replace
-  them with your own art if you like.
+- GitHub is a trademark of GitHub, Inc. This is an unofficial, community plugin
+  and is not affiliated with or endorsed by GitHub, Inc.
