@@ -10,6 +10,7 @@ by the local [`gh`](https://cli.github.com) CLI.
 | **PR Count** | Shows a live count of pull requests in a repo matching a filter (author, approval status, labels, state). Press the key to open the equivalent GitHub PR search in your browser. |
 | **Issue Count** | Shows a live count of issues in a repo matching a filter (author, assignee, labels, state). Press the key to open the equivalent GitHub issue search in your browser. |
 | **CI Status** | Shows the status of the latest GitHub Actions run for a repo — green ✓ (success), red ✗ (failure), amber ↻ (in progress), grey dots (queued / waiting), grey dash (no runs / cancelled). While a run is in progress it also shows live step progress (e.g. `4 / 9`) at the bottom. Press to open the run (or the repo's Actions page) in your browser. |
+| **Notification Count** | Shows a live count of your unread GitHub notifications, optionally scoped to a single repo and to a common inbox filter (Assigned, Participating, Mentioned, Team mentioned, Review requested). Press the key to open the matching GitHub notifications view. |
 
 ### PR Count filters
 
@@ -22,7 +23,7 @@ Configure each button in its settings:
 | **Author** | Anyone / Me / Not me / Specific user / Not a user. |
 | **User** | The username used when Author is *Specific user* or *Not a user*. |
 | **Approval** | Any / Pending review / Approved / Changes requested / Review required. |
-| **Labels** | Comma-separated; all must be present (AND). |
+| **Labels** | Comma-separated; matches any of them (OR). |
 | **State** | Open (default) / Closed / Merged / All. |
 | **Advanced query** | Raw GitHub search qualifiers appended verbatim (e.g. `draft:false`). |
 
@@ -40,7 +41,7 @@ Configure each button in its settings:
 | **Author** | Anyone / Me / Not me / Specific user / Not a user. |
 | **User** | The username used when Author is *Specific user* or *Not a user*. |
 | **Assignee** | Anyone / Me / Not me / Unassigned. |
-| **Labels** | Comma-separated; all must be present (AND). |
+| **Labels** | Comma-separated; matches any of them (OR). |
 | **State** | Open (default) / Closed / All. |
 | **Advanced query** | Raw GitHub search qualifiers appended verbatim (e.g. `milestone:v2`). |
 
@@ -52,6 +53,14 @@ Configure each button in its settings:
 | **Repository** | `owner/name`. |
 | **Workflow** | Optional — a workflow name (`CI`) or file (`ci.yml`). Blank = any workflow. |
 | **Branch** | Optional — blank = any branch. |
+
+### Notification Count filters
+
+| Setting | Notes |
+| --- | --- |
+| **Button label** | Short name shown on the key (e.g. "Inbox"). |
+| **Repository** | Optional — `owner/name` to count only that repo's notifications; blank counts across all repos. |
+| **Filter** | All unread (default) / Assigned / Participating / Mentioned / Team mentioned / Review requested — mirrors the inbox's Filters. |
 
 ## Requirements
 

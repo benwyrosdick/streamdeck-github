@@ -15,6 +15,7 @@ from .backend.github_backend import GitHubBackend, RateLimitError
 from .actions.PRCount.PRCount import PRCount
 from .actions.IssueCount.IssueCount import IssueCount
 from .actions.CIStatus.CIStatus import CIStatus
+from .actions.NotificationCount.NotificationCount import NotificationCount
 
 
 class GitHubPlugin(PluginBase):
@@ -79,6 +80,19 @@ class GitHubPlugin(PluginBase):
             },
         )
         self.add_action_holder(self.ci_status_holder)
+
+        self.notification_count_holder = ActionHolder(
+            plugin_base=self,
+            action_base=NotificationCount,
+            action_id_suffix="NotificationCount",
+            action_name=self.lm.get("actions.notification-count.name"),
+            action_support={
+                Input.Key: ActionInputSupport.SUPPORTED,
+                Input.Dial: ActionInputSupport.UNTESTED,
+                Input.Touchscreen: ActionInputSupport.UNTESTED,
+            },
+        )
+        self.add_action_holder(self.notification_count_holder)
 
         # Register plugin
         self.register(
@@ -186,6 +200,26 @@ class GitHubPlugin(PluginBase):
 
     def invalidate_run(self, repo: str, workflow: str = "", branch: str = ""):
         self.invalidate(self._run_key(repo, workflow, branch))
+
+    @staticmethod
+    def _notif_key(repo: str, participating: bool, reason: str) -> str:
+        return f"notif\x00{repo}\x00{int(participating)}\x00{reason}"
+
+    def get_notification_count(self, repo: str = "", participating: bool = False,
+                               reason: str = "", max_age: float = 60.0):
+        """Cached count of unread notifications. Keyed by scope + filter so a
+        repo-scoped key and the global one don't share a fetch."""
+        key = self._notif_key(repo, participating, reason)
+        return self._get_async(
+            key,
+            lambda: self.backend.notification_count(repo, participating, reason),
+            max_age,
+        )
+
+    def invalidate_notification_count(self, repo: str = "",
+                                      participating: bool = False,
+                                      reason: str = ""):
+        self.invalidate(self._notif_key(repo, participating, reason))
 
     def get_run_progress(self, repo: str, run_id, max_age: float = 15.0):
         """(completed, total) steps for a run, or None. Cached briefly (shorter

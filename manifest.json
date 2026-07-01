@@ -10,7 +10,7 @@
     "short-descriptions": {
         "en_US": "GitHub repo insights on your Stream Deck"
     },
-    "tags": ["GitHub", "Development", "PRs"],
+    "tags": ["GitHub", "Development", "PRs", "Notifications"],
     "minimum-app-version": "1.5.0-beta.14",
     "app-version": "1.5.0-beta.14",
 

@@ -63,5 +63,17 @@
     "actions.ci-status.name-row.label": "Button label",
     "actions.ci-status.repo.label": "Repository (owner/name)",
     "actions.ci-status.workflow.label": "Workflow (name or file, optional)",
-    "actions.ci-status.branch.label": "Branch (optional, any branch if blank)"
+    "actions.ci-status.branch.label": "Branch (optional, any branch if blank)",
+
+    "actions.notification-count.name": "Notification Count",
+    "actions.notification-count.name-row.label": "Button label",
+    "actions.notification-count.repo.label": "Repository (owner/name, optional)",
+
+    "actions.notification-count.filter.label": "Filter",
+    "actions.notification-count.filter.all": "All unread",
+    "actions.notification-count.filter.assigned": "Assigned",
+    "actions.notification-count.filter.participating": "Participating",
+    "actions.notification-count.filter.mentioned": "Mentioned",
+    "actions.notification-count.filter.team-mentioned": "Team mentioned",
+    "actions.notification-count.filter.review-requested": "Review requested"
 }

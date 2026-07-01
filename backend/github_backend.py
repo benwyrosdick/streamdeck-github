@@ -258,6 +258,36 @@ class GitHubBackend:
         completed = sum(1 for s in steps if s.get("status") == "completed")
         return completed, total
 
+    def notification_count(self, repo: str = "", participating: bool = False,
+                           reason: str = "",
+                           timeout: int = COUNT_TIMEOUT) -> Optional[int]:
+        """Number of unread notifications for the authenticated user.
+
+        Scoped to `repo` (owner/name) when given, else across all repos. With
+        `participating` only threads the user is directly involved in count.
+        `reason` filters to a single notification reason (e.g. "assign",
+        "review_requested", "mention", "team_mention") client-side, mirroring
+        the inbox's Filters — the REST API can't filter by reason server-side.
+        Returns None on any failure. The REST endpoint returns only unread
+        threads by default, matching the inbox badge.
+        """
+        endpoint = f"/repos/{repo}/notifications" if repo else "/notifications"
+        args = ["api", "--paginate", endpoint,
+                "-X", "GET", "-f", "per_page=100"]
+        if participating:
+            args += ["-f", "participating=true"]
+        # Emit one line per matching thread id so pagination just accumulates
+        # lines. A reason filter is a jq select on each thread's `.reason`.
+        if reason:
+            args += ["--jq", f'.[] | select(.reason == "{reason}") | .id']
+        else:
+            args += ["--jq", ".[].id"]
+        ok, out, err = self._run(args, timeout=timeout)
+        if not ok:
+            self._check_rate_limit(err)
+            return None
+        return sum(1 for line in out.splitlines() if line.strip())
+
     # ------------------------------------------------------------------ #
     # Side effects
     # ------------------------------------------------------------------ #
