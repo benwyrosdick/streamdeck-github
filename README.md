@@ -1,5 +1,7 @@
 # GitHub Insights plugin for StreamController
 
+![GitHub Insights](store/Thumbnail.png)
+
 Surface [GitHub](https://github.com) repo insights on your Stream Deck, powered
 by the local [`gh`](https://cli.github.com) CLI.
 
